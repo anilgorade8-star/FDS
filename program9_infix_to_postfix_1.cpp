@@ -1,182 +1,88 @@
-/*
- * Program 9: Infix to Postfix Conversion
- * Objective: Convert "(A+B)*C-D" into a postfix expression using stack operations
- *            and display the equivalent postfix expression.
- */
-
 #include <iostream>
 #include <string>
 #include <cctype>
-#include <iomanip>
 using namespace std;
 
-#define MAX_SIZE 100
+int main() {
+    string infix = "(A+B)*C-D";
 
-// Stack implementation for characters
-class CharStack {
-private:
-    char arr[MAX_SIZE];
-    int top;
-
-public:
-    CharStack() {
-        top = -1;
+    cout << "Given Infix Expression: " << infix << "\n";
+    cout << "Do you want to use this default expression? (y/n): ";
+    char ans;
+    cin >> ans;
+    if (ans == 'n' || ans == 'N') {
+        cout << "Enter your infix expression: ";
+        cin >> infix;
     }
 
-    bool isEmpty() const {
-        return top == -1;
-    }
-
-    bool isFull() const {
-        return top == MAX_SIZE - 1;
-    }
-
-    void push(char c) {
-        if (!isFull()) {
-            arr[++top] = c;
-        }
-    }
-
-    char pop() {
-        if (!isEmpty()) {
-            return arr[top--];
-        }
-        return '\0';
-    }
-
-    char peek() const {
-        if (!isEmpty()) {
-            return arr[top];
-        }
-        return '\0';
-    }
-
-    string getStackContent() const {
-        if (isEmpty()) return "(empty)";
-        string s = "";
-        for (int i = 0; i <= top; i++) {
-            s += arr[i];
-        }
-        return s;
-    }
-};
-
-// Function to return operator precedence
-int getPrecedence(char op) {
-    if (op == '^')
-        return 3;
-    if (op == '*' || op == '/')
-        return 2;
-    if (op == '+' || op == '-')
-        return 1;
-    return 0; // For '(' and others
-}
-
-// Function to check if a character is an operator
-bool isOperator(char c) {
-    return (c == '+' || c == '-' || c == '*' || c == '/' || c == '^');
-}
-
-// Function to convert infix to postfix with step-by-step demonstration
-string infixToPostfix(const string& infix, bool showTrace = true) {
-    CharStack st;
+    char stack[100];
+    int top = -1;
     string postfix = "";
 
-    if (showTrace) {
-        cout << "\n" << string(65, '-') << "\n";
-        cout << left << setw(10) << "Symbol" 
-             << setw(25) << "Stack (Bottom->Top)" 
-             << setw(30) << "Postfix Expression" << "\n";
-        cout << string(65, '-') << "\n";
-    }
-
-    for (size_t i = 0; i < infix.length(); i++) {
+    // Convert infix to postfix directly using stack
+    for (int i = 0; i < infix.length(); i++) {
         char ch = infix[i];
 
-        // Skip whitespace
-        if (isspace(ch)) continue;
+        // Skip spaces
+        if (ch == ' ') continue;
 
-        // If operand (alphanumeric), append to postfix expression
+        // If operand (alphabet or digit), add directly to postfix
         if (isalnum(ch)) {
             postfix += ch;
         }
-        // If left parenthesis '(', push onto stack
+        // If '(', push onto stack
         else if (ch == '(') {
-            st.push(ch);
+            top++;
+            stack[top] = ch;
         }
-        // If right parenthesis ')', pop and output until '(' is met
+        // If ')', pop from stack until '('
         else if (ch == ')') {
-            while (!st.isEmpty() && st.peek() != '(') {
-                postfix += st.pop();
+            while (top != -1 && stack[top] != '(') {
+                postfix += stack[top];
+                top--;
             }
-            if (!st.isEmpty() && st.peek() == '(') {
-                st.pop(); // Remove '(' from stack
+            if (top != -1 && stack[top] == '(') {
+                top--; // remove '('
             }
         }
         // If operator
-        else if (isOperator(ch)) {
-            while (!st.isEmpty() && st.peek() != '(' &&
-                   getPrecedence(st.peek()) >= getPrecedence(ch)) {
-                postfix += st.pop();
+        else if (ch == '+' || ch == '-' || ch == '*' || ch == '/' || ch == '^') {
+            int currentPrec = 0;
+            if (ch == '^') currentPrec = 3;
+            else if (ch == '*' || ch == '/') currentPrec = 2;
+            else if (ch == '+' || ch == '-') currentPrec = 1;
+
+            while (top != -1 && stack[top] != '(') {
+                int topPrec = 0;
+                if (stack[top] == '^') topPrec = 3;
+                else if (stack[top] == '*' || stack[top] == '/') topPrec = 2;
+                else if (stack[top] == '+' || stack[top] == '-') topPrec = 1;
+
+                if (topPrec >= currentPrec) {
+                    postfix += stack[top];
+                    top--;
+                } else {
+                    break;
+                }
             }
-            st.push(ch);
-        }
-
-        if (showTrace) {
-            cout << left << setw(10) << ch 
-                 << setw(25) << st.getStackContent() 
-                 << setw(30) << postfix << "\n";
+            // Push current operator
+            top++;
+            stack[top] = ch;
         }
     }
 
-    // Pop all remaining operators in the stack
-    while (!st.isEmpty()) {
-        char popped = st.pop();
-        if (popped != '(') {
-            postfix += popped;
+    // Pop remaining operators from stack
+    while (top != -1) {
+        if (stack[top] != '(') {
+            postfix += stack[top];
         }
-        if (showTrace) {
-            cout << left << setw(10) << "[End]" 
-                 << setw(25) << st.getStackContent() 
-                 << setw(30) << postfix << "\n";
-        }
+        top--;
     }
 
-    if (showTrace) {
-        cout << string(65, '-') << "\n";
-    }
-
-    return postfix;
-}
-
-int main() {
-    cout << "=== Infix to Postfix Conversion using Stack ===\n";
-
-    string targetExpr = "(A+B)*C-D";
-    cout << "Target Expression given: " << targetExpr << "\n";
-
-    cout << "\nConverting the target expression step-by-step:\n";
-    string result = infixToPostfix(targetExpr, true);
-
-    cout << "\n============================================\n";
-    cout << "Infix Expression   : " << targetExpr << "\n";
-    cout << "Postfix Expression : " << result << "\n";
-    cout << "============================================\n";
-
-    // Option to enter a custom expression
-    cout << "\nWould you like to test another expression? (y/n): ";
-    char choice;
-    cin >> choice;
-    if (choice == 'y' || choice == 'Y') {
-        cin.ignore();
-        string userExpr;
-        cout << "Enter Infix Expression: ";
-        getline(cin, userExpr);
-        string userPostfix = infixToPostfix(userExpr, true);
-        cout << "\nInfix Expression   : " << userExpr << "\n";
-        cout << "Postfix Expression : " << userPostfix << "\n";
-    }
+    cout << "\n----------------------------------------\n";
+    cout << "Infix Expression   : " << infix << "\n";
+    cout << "Postfix Expression : " << postfix << "\n";
+    cout << "----------------------------------------\n";
 
     return 0;
 }
-
